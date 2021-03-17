@@ -1,0 +1,183 @@
+#=================================================
+# https://github.com/P3TERX/Actions-OpenWrt
+# Description: Build OpenWrt using GitHub Actions
+# Lisence: MIT
+# Author: P3TERX
+# Blog: https://p3terx.com
+#=================================================
+
+name: lucio OpenWrt
+
+on:
+  release:
+    types: [published]
+  push:
+    branches:
+      - master
+    paths:
+      - '.config'
+#  schedule:
+#    - cron: 0 8 * * 5
+  watch:
+    types: [started]
+
+env:
+  REPO_URL: https://github.com/coolsnowwolf/lede
+  REPO_BRANCH: master
+  CONFIG_FILE: .config
+  DIY_SH: diy.sh
+  FREE_UP_DISK: false
+  SSH_ACTIONS: true
+  UPLOAD_BIN_DIR: false
+  UPLOAD_FIRMWARE: true
+  TZ: Asia/Shanghai
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@master
+
+    - name: Initialization environment
+      env:
+        DEBIAN_FRONTEND: noninteractive
+      run: |
+        sudo swapoff /swapfile
+        sudo rm -rf /swapfile /etc/apt/sources.list.d/*
+        sudo -E apt-get -qq update
+        sudo -E apt-get -qq install build-essential asciidoc binutils bzip2 gawk gettext git libncurses5-dev libz-dev patch unzip zlib1g-dev lib32gcc1 libc6-dev-i386 subversion flex uglifyjs git-core gcc-multilib p7zip p7zip-full msmtp libssl-dev texinfo libglib2.0-dev xmlto qemu-utils upx libelf-dev autoconf automake libtool autopoint device-tree-compiler
+        curl -fsSL https://raw.githubusercontent.com/P3TERX/dotfiles/master/.bashrc >> ~/.bashrc
+
+    - name: Free up disk space
+      if: env.FREE_UP_DISK == 'true'
+      env:
+        DEBIAN_FRONTEND: noninteractive
+      run: |
+        sudo rm -rf /usr/share/dotnet
+        docker rmi `docker images -q`
+        sudo -E apt-get -q purge azure-cli ghc* zulu* hhvm llvm* firefox google* dotnet* powershell openjdk* mysql* php*
+        sudo -E apt-get -qq autoremove --purge
+        sudo -E apt-get -qq clean
+
+    - name: Clone source code
+      run: git clone --depth 1 $REPO_URL -b $REPO_BRANCH openwrt
+
+    - name: Update feeds
+      run: cd openwrt && ./scripts/feeds update -a
+
+    - name: Install feeds
+      run: cd openwrt && ./scripts/feeds install -a
+
+    - name: Load custom configuration
+      run: |
+        [ -e files ] && mv files openwrt/files
+        [ -e $CONFIG_FILE ] && mv $CONFIG_FILE openwrt/.config
+        chmod +x $DIY_SH
+        cd openwrt
+        ../$DIY_SH
+        make defconfig
+              cat >> .config <<EOF
+              CONFIG_DEFAULT_TARGET_ath79_generic=y
+              CONFIG_TARGET_ath79=y
+              CONFIG_TARGET_ath79_generic=y
+              CONFIG_TARGET_MULTI_PROFILE=y
+              EOF
+              # IPv6支持:
+              # cat >> .config <<EOF
+              # CONFIG_PACKAGE_dnsmasq_full_dhcpv6=y
+              # CONFIG_PACKAGE_ipv6helper=y
+              # EOF
+              # 常用LuCI插件选择, 主要定制passwall与ssr-plus
+              cat >> .config <<EOF
+              CONFIG_PACKAGE_luci-app-adbyby-plus=y
+              CONFIG_PACKAGE_luci-app-aria2=y
+              CONFIG_PACKAGE_luci-app-baidupcs-web=y
+              CONFIG_PACKAGE_luci-app-docker=y
+              CONFIG_PACKAGE_luci-app-frpc=y
+              CONFIG_PACKAGE_luci-app-kodexplorer=y
+              CONFIG_PACKAGE_luci-app-minidlna=y
+              CONFIG_PACKAGE_luci-app-openvpn=y
+              CONFIG_PACKAGE_luci-app-openvpn-server=y
+              CONFIG_PACKAGE_luci-app-passwall=y
+              CONFIG_PACKAGE_luci-app-passwall_INCLUDE_ipt2socks=y
+              # CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Shadowsocks is not set
+              CONFIG_PACKAGE_luci-app-passwall_INCLUDE_ShadowsocksR=y
+              # CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Shadowsocks_socks is not set
+              # CONFIG_PACKAGE_luci-app-passwall_INCLUDE_ShadowsocksR_socks is not set
+              CONFIG_PACKAGE_luci-app-passwall_INCLUDE_V2ray=y
+              CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Trojan=y
+              CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Brook=y
+              # CONFIG_PACKAGE_luci-app-passwall_INCLUDE_kcptun is not set
+              CONFIG_PACKAGE_luci-app-passwall_INCLUDE_haproxy=y
+              CONFIG_PACKAGE_luci-app-passwall_INCLUDE_ChinaDNS_NG=y
+              CONFIG_PACKAGE_luci-app-passwall_INCLUDE_pdnsd=y
+              CONFIG_PACKAGE_luci-app-passwall_INCLUDE_dns2socks=y
+              # CONFIG_PACKAGE_luci-app-passwall_INCLUDE_v2ray-plugin is not set
+              # CONFIG_PACKAGE_luci-app-passwall_INCLUDE_simple-obfs is not set
+              CONFIG_PACKAGE_luci-app-qbittorrent=y
+              CONFIG_PACKAGE_luci-app-ssr-plus=y
+              CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_Shadowsocks=y
+              CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_Simple_obfs=y
+              CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_V2ray_plugin=y
+              CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_V2ray=y
+              CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_Trojan=y
+              # CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_Kcptun is not set
+              CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_ShadowsocksR_Server=y
+              CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_ShadowsocksR_Socks=y
+              CONFIG_PACKAGE_luci-app-ttyd=y
+              CONFIG_PACKAGE_luci-app-v2ray-server=y
+              CONFIG_PACKAGE_luci-app-verysync=y
+              CONFIG_PACKAGE_luci-app-webadmin=y
+              CONFIG_PACKAGE_luci-app-wireguard=y
+              CONFIG_PACKAGE_luci-app-wrtbwmon=y
+              EOF
+              # 取消编译VMware镜像以及镜像填充 (不要删除被缩进的注释符号):
+              # cat >> .config <<EOF
+              # # CONFIG_TARGET_IMAGES_PAD is not set
+              # # CONFIG_VMDK_IMAGES is not set
+              # EOF
+              # 
+    - name: SSH connection to Actions
+      uses: P3TERX/debugger-action@master
+      if: env.SSH_ACTIONS == 'true'
+
+    - name: Download package
+      id: package
+      run: |
+        cd openwrt
+        make download -j8
+        find dl -size -1024c -exec ls -l {} \;
+        find dl -size -1024c -exec rm -f {} \;
+
+    - name: Compile the firmware
+      id: compile
+      run: |
+        cd openwrt
+        echo -e "$(nproc) thread compile"
+        make -j$(nproc) || make -j1 V=s
+        echo "::set-output name=status::success"
+
+    - name: Upload bin directory
+      uses: actions/upload-artifact@master
+      if: steps.compile.outputs.status == 'success' && env.UPLOAD_BIN_DIR == 'true'
+      with:
+        name: OpenWrt_directory
+        path: openwrt/bin
+
+    - name: Organize files
+      id: organize
+      if: env.UPLOAD_FIRMWARE == 'true' && !cancelled()
+      run: |
+        cd openwrt/bin/targets/*/*
+        rm -rf packages
+        echo "::set-env name=FIRMWARE::$(pwd)"
+        echo "::set-output name=status::success"
+
+    - name: Upload firmware directory
+      uses: actions/upload-artifact@master
+      if: steps.organize.outputs.status == 'success' && !cancelled()
+      with:
+        name: OpenWrt_firmware
+        path: ${{ env.FIRMWARE }}
