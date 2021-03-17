@@ -78,7 +78,68 @@ jobs:
         cd openwrt
         ../$DIY_SH
         make defconfig
-
+# 编译x64固件:
+              cat >> .config <<EOF
+              CONFIG_DEFAULT_TARGET_ath79_generic=y
+              CONFIG_TARGET_ath79=y
+              CONFIG_TARGET_ath79_generic=y
+              CONFIG_TARGET_MULTI_PROFILE=y
+              EOF
+              # IPv6支持:
+              # cat >> .config <<EOF
+              # CONFIG_PACKAGE_dnsmasq_full_dhcpv6=y
+              # CONFIG_PACKAGE_ipv6helper=y
+              # EOF
+              # 常用LuCI插件选择, 主要定制passwall与ssr-plus
+              cat >> .config <<EOF
+              CONFIG_PACKAGE_luci-app-adbyby-plus=y
+              CONFIG_PACKAGE_luci-app-aria2=y
+              CONFIG_PACKAGE_luci-app-baidupcs-web=y
+              CONFIG_PACKAGE_luci-app-docker=y
+              CONFIG_PACKAGE_luci-app-frpc=y
+              CONFIG_PACKAGE_luci-app-kodexplorer=y
+              CONFIG_PACKAGE_luci-app-minidlna=y
+              CONFIG_PACKAGE_luci-app-openvpn=y
+              CONFIG_PACKAGE_luci-app-openvpn-server=y
+              CONFIG_PACKAGE_luci-app-passwall=y
+              CONFIG_PACKAGE_luci-app-passwall_INCLUDE_ipt2socks=y
+              # CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Shadowsocks is not set
+              CONFIG_PACKAGE_luci-app-passwall_INCLUDE_ShadowsocksR=y
+              # CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Shadowsocks_socks is not set
+              # CONFIG_PACKAGE_luci-app-passwall_INCLUDE_ShadowsocksR_socks is not set
+              CONFIG_PACKAGE_luci-app-passwall_INCLUDE_V2ray=y
+              CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Trojan=y
+              CONFIG_PACKAGE_luci-app-passwall_INCLUDE_Brook=y
+              # CONFIG_PACKAGE_luci-app-passwall_INCLUDE_kcptun is not set
+              CONFIG_PACKAGE_luci-app-passwall_INCLUDE_haproxy=y
+              CONFIG_PACKAGE_luci-app-passwall_INCLUDE_ChinaDNS_NG=y
+              CONFIG_PACKAGE_luci-app-passwall_INCLUDE_pdnsd=y
+              CONFIG_PACKAGE_luci-app-passwall_INCLUDE_dns2socks=y
+              # CONFIG_PACKAGE_luci-app-passwall_INCLUDE_v2ray-plugin is not set
+              # CONFIG_PACKAGE_luci-app-passwall_INCLUDE_simple-obfs is not set
+              CONFIG_PACKAGE_luci-app-qbittorrent=y
+              CONFIG_PACKAGE_luci-app-ssr-plus=y
+              CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_Shadowsocks=y
+              CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_Simple_obfs=y
+              CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_V2ray_plugin=y
+              CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_V2ray=y
+              CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_Trojan=y
+              # CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_Kcptun is not set
+              CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_ShadowsocksR_Server=y
+              CONFIG_PACKAGE_luci-app-ssr-plus_INCLUDE_ShadowsocksR_Socks=y
+              CONFIG_PACKAGE_luci-app-ttyd=y
+              CONFIG_PACKAGE_luci-app-v2ray-server=y
+              CONFIG_PACKAGE_luci-app-verysync=y
+              CONFIG_PACKAGE_luci-app-webadmin=y
+              CONFIG_PACKAGE_luci-app-wireguard=y
+              CONFIG_PACKAGE_luci-app-wrtbwmon=y
+              EOF
+              # 取消编译VMware镜像以及镜像填充 (不要删除被缩进的注释符号):
+              # cat >> .config <<EOF
+              # # CONFIG_TARGET_IMAGES_PAD is not set
+              # # CONFIG_VMDK_IMAGES is not set
+              # EOF
+              # 
     - name: SSH connection to Actions
       uses: P3TERX/debugger-action@master
       if: env.SSH_ACTIONS == 'true'
