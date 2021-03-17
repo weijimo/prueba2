@@ -78,8 +78,6 @@ jobs:
         cd openwrt
         ../$DIY_SH
         make defconfig
-        
-        # 编译x64固件:
               cat >> .config <<EOF
               CONFIG_DEFAULT_TARGET_ath79_generic=y
               CONFIG_TARGET_ath79=y
